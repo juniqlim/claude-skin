@@ -3,13 +3,42 @@ import { Box, Text, useInput, useApp, useStdout, useCursor } from "ink";
 import { spawnClaude, type ParsedEvent } from "./claude-process.ts";
 import { cursorColumn, wrappedLineCount } from "./cursor.ts";
 import { parseCliArgs, buildClaudeArgs } from "./cli-args.ts";
+import { listSessions, loadSessionHistory, cwdToProjectDir, type SessionSummary } from "./sessions.ts";
 
-type AppState = "idle" | "waiting" | "permission";
+type AppState = "session-select" | "idle" | "waiting" | "permission";
 
 interface PermissionInfo {
   toolName: string;
   toolUseId: string;
   input: Record<string, unknown>;
+}
+
+function SessionPicker({
+  sessions,
+  selected,
+  onSelect,
+}: {
+  sessions: SessionSummary[];
+  selected: number;
+  onSelect: (session: SessionSummary) => void;
+}) {
+  useInput((_ch, key) => {
+    // input handling is done in parent
+  });
+
+  return (
+    <Box flexDirection="column">
+      <Text bold color="cyan">세션 선택 (↑↓ 이동, Enter 선택, Esc 새 세션)</Text>
+      <Text> </Text>
+      {sessions.map((s, i) => (
+        <Text key={s.sessionId} color={i === selected ? "green" : undefined}>
+          {i === selected ? "❯ " : "  "}
+          {s.firstMessage}
+          <Text color="gray"> ({s.timestamp.slice(0, 10)})</Text>
+        </Text>
+      ))}
+    </Box>
+  );
 }
 
 export default function App() {
@@ -23,10 +52,37 @@ export default function App() {
   const [claude, setClaude] = useState<ReturnType<typeof spawnClaude> | null>(null);
   const [sessionId, setSessionId] = useState<string>("");
 
-  // Spawn Claude process on mount
+  // Session picker state
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+
+  const opts = parseCliArgs(process.argv.slice(2));
+
+  // Load sessions if --resume
   useEffect(() => {
-    const opts = parseCliArgs(process.argv.slice(2));
+    if (!opts.resume) {
+      startClaude();
+      return;
+    }
+
+    // cwd를 프로젝트 디렉토리명으로 변환
+    const projectDir = cwdToProjectDir(process.cwd());
+    listSessions(projectDir).then((list) => {
+      if (list.length === 0) {
+        // 세션 없으면 그냥 새로 시작
+        startClaude();
+      } else {
+        setSessions(list);
+        setState("session-select");
+      }
+    });
+  }, []);
+
+  function startClaude(resumeSessionId?: string) {
     const claudeArgs = buildClaudeArgs(opts);
+    if (resumeSessionId) {
+      claudeArgs.push("--resume", resumeSessionId);
+    }
     const proc = spawnClaude(claudeArgs);
     setClaude(proc);
 
@@ -55,11 +111,7 @@ export default function App() {
       setOutput((prev) => [...prev, `[Process exited: ${code}]`]);
       exit();
     });
-
-    return () => {
-      proc.kill();
-    };
-  }, []);
+  }
 
   const sendMessage = useCallback(() => {
     if (!claude || !inputState.text.trim()) return;
@@ -70,9 +122,32 @@ export default function App() {
   }, [claude, inputState.text]);
 
   useInput((ch, key) => {
+    // Session picker
+    if (state === "session-select") {
+      if (key.upArrow) {
+        setSelectedIdx((prev) => Math.max(0, prev - 1));
+      } else if (key.downArrow) {
+        setSelectedIdx((prev) => Math.min(sessions.length - 1, prev + 1));
+      } else if (key.return) {
+        const selected = sessions[selectedIdx];
+        const projectDir = cwdToProjectDir(process.cwd());
+        loadSessionHistory(projectDir, selected.sessionId).then((history) => {
+          const lines = history.map((m) =>
+            m.role === "user" ? `> ${m.text}` : m.text
+          );
+          setOutput(lines);
+          setState("idle");
+          startClaude(selected.sessionId);
+        });
+      } else if (key.escape) {
+        setState("idle");
+        startClaude();
+      }
+      return;
+    }
+
     if (state === "permission") {
       if (ch === "y" || ch === "Y") {
-        // Approve tool use — for now just log it
         setOutput((prev) => [...prev, `[Approved] ${permission?.toolName}`]);
         setPermission(null);
         setState("waiting");
@@ -134,6 +209,20 @@ export default function App() {
     }
   });
 
+  // Session select screen
+  if (state === "session-select") {
+    return (
+      <SessionPicker
+        sessions={sessions}
+        selected={selectedIdx}
+        onSelect={(s) => {
+          setState("idle");
+          startClaude(s.sessionId);
+        }}
+      />
+    );
+  }
+
   const { text: input, cursor: cursorPos } = inputState;
   const cursorX = cursorColumn(input, cursorPos);
   const termWidth = stdout?.columns ?? 80;
@@ -143,7 +232,6 @@ export default function App() {
   const visibleOutput = output.slice(-maxOutputLines);
 
   // Position the real terminal cursor for IME composition
-  // y = sum of wrapped line counts for all output lines
   const inputLineY = visibleOutput.reduce(
     (sum, line) => sum + wrappedLineCount(line, termWidth),
     0

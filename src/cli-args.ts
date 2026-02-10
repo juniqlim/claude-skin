@@ -3,6 +3,7 @@ export interface CliOptions {
   model?: string;
   appendSystemPrompt?: string;
   systemPrompt?: string;
+  resume?: boolean;
 }
 
 export function parseCliArgs(args: string[]): CliOptions {
@@ -21,6 +22,10 @@ export function parseCliArgs(args: string[]): CliOptions {
         break;
       case "--system-prompt":
         opts.systemPrompt = args[++i];
+        break;
+      case "--resume":
+      case "-r":
+        opts.resume = true;
         break;
     }
   }

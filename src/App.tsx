@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { Box, Text, useInput, useApp, useStdout } from "ink";
-import stringWidth from "string-width";
+import { Box, Text, useInput, useApp, useStdout, useCursor } from "ink";
 import { spawnClaude, type ParsedEvent } from "./claude-process.ts";
+import { cursorColumn } from "./cursor.ts";
 
 type AppState = "idle" | "waiting" | "permission";
 
@@ -14,8 +14,8 @@ interface PermissionInfo {
 export default function App() {
   const { exit } = useApp();
   const { stdout } = useStdout();
-  const [input, setInput] = useState("");
-  const [cursorPos, setCursorPos] = useState(0);
+  const { setCursorPosition } = useCursor();
+  const [inputState, setInputState] = useState({ text: "", cursor: 0 });
   const [output, setOutput] = useState<string[]>([]);
   const [state, setState] = useState<AppState>("idle");
   const [permission, setPermission] = useState<PermissionInfo | null>(null);
@@ -68,13 +68,12 @@ export default function App() {
   }, []);
 
   const sendMessage = useCallback(() => {
-    if (!claude || !input.trim()) return;
-    setOutput((prev) => [...prev, `> ${input}`]);
-    claude.send(input);
-    setInput("");
-    setCursorPos(0);
+    if (!claude || !inputState.text.trim()) return;
+    setOutput((prev) => [...prev, `> ${inputState.text}`]);
+    claude.send(inputState.text);
+    setInputState({ text: "", cursor: 0 });
     setState("waiting");
-  }, [claude, input]);
+  }, [claude, inputState.text]);
 
   useInput((ch, key) => {
     if (state === "permission") {
@@ -105,42 +104,58 @@ export default function App() {
     }
 
     if (key.backspace || key.delete) {
-      if (cursorPos > 0) {
-        const before = [...input].slice(0, cursorPos - 1).join("");
-        const after = [...input].slice(cursorPos).join("");
-        setInput(before + after);
-        setCursorPos(cursorPos - 1);
-      }
+      setInputState((prev) => {
+        if (prev.cursor <= 0) return prev;
+        const chars = [...prev.text];
+        chars.splice(prev.cursor - 1, 1);
+        return { text: chars.join(""), cursor: prev.cursor - 1 };
+      });
       return;
     }
 
     if (key.leftArrow) {
-      setCursorPos(Math.max(0, cursorPos - 1));
+      setInputState((prev) => ({
+        ...prev,
+        cursor: Math.max(0, prev.cursor - 1),
+      }));
       return;
     }
 
     if (key.rightArrow) {
-      setCursorPos(Math.min([...input].length, cursorPos + 1));
+      setInputState((prev) => ({
+        ...prev,
+        cursor: Math.min([...prev.text].length, prev.cursor + 1),
+      }));
       return;
     }
 
-    // Regular character input
+    // Regular character input (IME may send multiple chars at once, e.g. "거 ")
     if (ch && !key.ctrl && !key.meta) {
-      const chars = [...input];
-      chars.splice(cursorPos, 0, ch);
-      setInput(chars.join(""));
-      setCursorPos(cursorPos + 1);
+      setInputState((prev) => {
+        const chars = [...prev.text];
+        const newChars = [...ch];
+        chars.splice(prev.cursor, 0, ...newChars);
+        return { text: chars.join(""), cursor: prev.cursor + newChars.length };
+      });
     }
   });
 
-  // Calculate cursor X position using string-width (handles CJK)
-  const beforeCursor = [...input].slice(0, cursorPos).join("");
-  const cursorX = stringWidth(beforeCursor);
+  const { text: input, cursor: cursorPos } = inputState;
+  const cursorX = cursorColumn(input, cursorPos);
   const termWidth = stdout?.columns ?? 80;
 
   // Show last N lines of output that fit
   const maxOutputLines = (stdout?.rows ?? 24) - 4;
   const visibleOutput = output.slice(-maxOutputLines);
+
+  // Position the real terminal cursor for IME composition
+  // y = number of lines above the input line (output lines + possible status line)
+  const inputLineY = visibleOutput.length;
+  if (state === "idle") {
+    setCursorPosition({ x: cursorX, y: inputLineY });
+  } else {
+    setCursorPosition(undefined);
+  }
 
   return (
     <Box flexDirection="column" width={termWidth}>
@@ -179,11 +194,7 @@ export default function App() {
           <Text color="green" bold>
             {"❯ "}
           </Text>
-          <Text>
-            {beforeCursor}
-            <Text inverse>{[...input][cursorPos] ?? " "}</Text>
-            {[...input].slice(cursorPos + 1).join("")}
-          </Text>
+          <Text>{input}</Text>
         </Box>
       )}
     </Box>

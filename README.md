@@ -1,6 +1,6 @@
 # claude-skin
 
-Claude Code CLI의 터미널 UI를 자유롭게 커스터마이징하는 프로젝트.
+Claude Code CLI의 터미널 UI를 자유롭게 커스터마이징하는 프로젝트. 수요 없는 공급.
 
 ![claude-skin 실행 화면](./screenshot.png)
 

@@ -92,7 +92,7 @@ export default function App() {
           setSessionId(event.sessionId);
           break;
         case "assistant":
-          setOutput((prev) => [...prev, event.text]);
+          setOutput((prev) => [...prev, ...event.text.split("\n")]);
           setState("idle");
           break;
         case "tool_use":

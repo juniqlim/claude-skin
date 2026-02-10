@@ -159,7 +159,7 @@ export default function App() {
       return;
     }
 
-    if (state !== "idle") return;
+    if (state !== "idle" && state !== "waiting") return;
 
     if (key.return) {
       sendMessage();
@@ -236,8 +236,8 @@ export default function App() {
     (sum, line) => sum + wrappedLineCount(line, termWidth),
     0
   );
-  if (state === "idle") {
-    setCursorPosition({ x: cursorX, y: inputLineY });
+  if (state === "idle" || state === "waiting") {
+    setCursorPosition({ x: cursorX, y: inputLineY + (state === "waiting" ? 1 : 0) });
   } else {
     setCursorPosition(undefined);
   }
@@ -274,7 +274,7 @@ export default function App() {
       )}
 
       {/* Input area */}
-      {state === "idle" && (
+      {(state === "idle" || state === "waiting") && (
         <Box>
           <Text color="green" bold>
             {"❯ "}

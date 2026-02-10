@@ -71,7 +71,7 @@ export function spawnClaude(): ClaudeProcess {
   const exitHandlers: Array<(code: number | null) => void> = [];
 
   const proc = Bun.spawn(
-    ["claude", "--print", "--output-format", "stream-json", "--input-format", "stream-json", "--verbose", "--include-partial-messages"],
+    ["claude", "--print", "--output-format", "stream-json", "--input-format", "stream-json", "--verbose", "--include-partial-messages", "--dangerously-skip-permissions"],
     {
       stdin: "pipe",
       stdout: "pipe",

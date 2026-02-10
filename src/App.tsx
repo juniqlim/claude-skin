@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Box, Text, useInput, useApp, useStdout, useCursor } from "ink";
 import { spawnClaude, type ParsedEvent } from "./claude-process.ts";
-import { cursorColumn } from "./cursor.ts";
+import { cursorColumn, wrappedLineCount } from "./cursor.ts";
 
 type AppState = "idle" | "waiting" | "permission";
 
@@ -31,7 +31,6 @@ export default function App() {
       switch (event.type) {
         case "init":
           setSessionId(event.sessionId);
-          setOutput((prev) => [...prev, `[Connected] model: ${event.model}`]);
           break;
         case "assistant":
           setOutput((prev) => [...prev, event.text]);
@@ -46,12 +45,9 @@ export default function App() {
           setState("permission");
           break;
         case "result":
-          setOutput((prev) => [
-            ...prev,
-            event.isError
-              ? `[Error] ${event.text}`
-              : `[Done] cost: $${event.costUsd.toFixed(4)}`,
-          ]);
+          if (event.isError) {
+            setOutput((prev) => [...prev, `[Error] ${event.text}`]);
+          }
           setState("idle");
           break;
       }
@@ -149,8 +145,11 @@ export default function App() {
   const visibleOutput = output.slice(-maxOutputLines);
 
   // Position the real terminal cursor for IME composition
-  // y = number of lines above the input line (output lines + possible status line)
-  const inputLineY = visibleOutput.length;
+  // y = sum of wrapped line counts for all output lines
+  const inputLineY = visibleOutput.reduce(
+    (sum, line) => sum + wrappedLineCount(line, termWidth),
+    0
+  );
   if (state === "idle") {
     setCursorPosition({ x: cursorX, y: inputLineY });
   } else {

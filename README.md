@@ -2,6 +2,8 @@
 
 Claude Code CLI의 터미널 UI를 자유롭게 커스터마이징하는 프로젝트.
 
+![claude-skin 실행 화면](./screenshot.png)
+
 ## 왜 만드는가
 
 - Claude Code의 터미널 UI는 고정되어 있어서 변경할 수 없음
@@ -14,6 +16,111 @@ Claude Code CLI의 터미널 UI를 자유롭게 커스터마이징하는 프로�
 - `claude --print --output-format stream-json --input-format stream-json` (공식 플래그)
 - stdin/stdout 파이프로 통신 → 기존 구독 요금 그대로 사용
 - React Ink로 터미널 UI 렌더링 → UI 자유 커스터마이징
+
+## stream-json 프로토콜
+
+`claude --print --output-format stream-json --input-format stream-json`으로 실행하면 NDJSON(줄마다 JSON 하나)으로 통신한다.
+
+### 입력 (stdin)
+
+```json
+{"type":"user","message":{"role":"user","content":"say just hello"}}
+```
+
+### 출력 (stdout) — 이벤트 순서
+
+**1. system (init)** — 세션 시작
+
+```json
+{
+  "type": "system",
+  "subtype": "init",
+  "session_id": "a09b7a70-...",
+  "model": "claude-opus-4-6",
+  "tools": ["Bash", "Edit", "Read", "Write", "..."],
+  "mcp_servers": [],
+  "permissionMode": "bypassPermissions",
+  "claude_code_version": "2.1.38"
+}
+```
+
+**2. stream_event (message_start)** — 응답 시작
+
+```json
+{
+  "type": "stream_event",
+  "event": {
+    "type": "message_start",
+    "message": {
+      "model": "claude-opus-4-6",
+      "id": "msg_01QZMq...",
+      "role": "assistant",
+      "content": [],
+      "stop_reason": null,
+      "usage": { "input_tokens": 3, "output_tokens": 1 }
+    }
+  },
+  "session_id": "a09b7a70-..."
+}
+```
+
+**3. stream_event (content_block_start)** — 콘텐츠 블록 시작
+
+```json
+{
+  "type": "stream_event",
+  "event": { "type": "content_block_start", "index": 0, "content_block": { "type": "text", "text": "" } }
+}
+```
+
+**4. stream_event (content_block_delta)** — 실시간 토큰
+
+```json
+{
+  "type": "stream_event",
+  "event": { "type": "content_block_delta", "index": 0, "delta": { "type": "text_delta", "text": "hello" } }
+}
+```
+
+**5. assistant** — 중간 스냅샷 (전체 content 포함)
+
+```json
+{
+  "type": "assistant",
+  "message": {
+    "role": "assistant",
+    "content": [{ "type": "text", "text": "hello" }],
+    "stop_reason": null
+  },
+  "session_id": "a09b7a70-..."
+}
+```
+
+**6. stream_event (content_block_stop / message_delta / message_stop)**
+
+```json
+{ "type": "stream_event", "event": { "type": "content_block_stop", "index": 0 } }
+{ "type": "stream_event", "event": { "type": "message_delta", "delta": { "stop_reason": "end_turn" }, "usage": { "output_tokens": 4 } } }
+{ "type": "stream_event", "event": { "type": "message_stop" } }
+```
+
+**7. result** — 최종 결과
+
+```json
+{
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "result": "hello",
+  "total_cost_usd": 0.053,
+  "duration_ms": 2665,
+  "num_turns": 1,
+  "session_id": "a09b7a70-...",
+  "modelUsage": {
+    "claude-opus-4-6": { "inputTokens": 3, "outputTokens": 4, "costUSD": 0.053 }
+  }
+}
+```
 
 ## 기술 스택
 

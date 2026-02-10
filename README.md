@@ -18,7 +18,6 @@ Claude Code CLI의 터미널 UI를 자유롭게 커스터마이징하는 프로�
 
 | 옵션 | 설명 |
 |------|------|
-| `--system-prompt <prompt>` | 시스템 프롬프트를 통째로 교체 |
 | `--append-system-prompt <prompt>` | 기본 시스템 프롬프트에 추가 (말투/뉘앙스 커스터마이징에 적합) |
 | `--model <model>` | 사용할 모델 지정 (예: `claude-sonnet-4-5-20250929`) |
 | `--verbose` | 상세 출력 |

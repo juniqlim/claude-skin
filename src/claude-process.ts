@@ -66,12 +66,12 @@ export interface ClaudeProcess {
   onExit: (handler: (code: number | null) => void) => void;
 }
 
-export function spawnClaude(): ClaudeProcess {
+export function spawnClaude(extraArgs: string[] = []): ClaudeProcess {
   const eventHandlers: Array<(event: ParsedEvent) => void> = [];
   const exitHandlers: Array<(code: number | null) => void> = [];
 
   const proc = Bun.spawn(
-    ["claude", "--print", "--output-format", "stream-json", "--input-format", "stream-json", "--verbose", "--include-partial-messages", "--dangerously-skip-permissions"],
+    ["claude", ...extraArgs],
     {
       stdin: "pipe",
       stdout: "pipe",

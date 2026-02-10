@@ -6,6 +6,32 @@ Claude Code CLI의 터미널 UI를 자유롭게 커스터마이징하는 프로�
 
 ![claude-skin 유머](./screenshot2.png)
 
+## 주의: --dangerously-skip-permissions
+
+이 프로젝트는 `--dangerously-skip-permissions` 플래그로 Claude CLI를 실행한다. 모든 tool(파일 수정, 삭제, 웹 검색 등)이 **확인 없이 자동 실행**된다.
+
+끄려면 `src/claude-process.ts`에서 `--dangerously-skip-permissions`를 제거하면 된다.
+
+## Claude CLI 옵션
+
+`src/claude-process.ts`의 spawn 인자에 추가해서 사용할 수 있다.
+
+| 옵션 | 설명 |
+|------|------|
+| `--system-prompt <prompt>` | 시스템 프롬프트를 통째로 교체 |
+| `--append-system-prompt <prompt>` | 기본 시스템 프롬프트에 추가 (말투/뉘앙스 커스터마이징에 적합) |
+| `--model <model>` | 사용할 모델 지정 (예: `claude-sonnet-4-5-20250929`) |
+| `--verbose` | 상세 출력 |
+| `--include-partial-messages` | 스트리밍 중간 메시지 포함 |
+| `--dangerously-skip-permissions` | 모든 tool 자동 승인 (주의) |
+
+예시: 반말로 유머러스하게 응답하게 하려면
+
+```ts
+["claude", "--print", "--output-format", "stream-json", "--input-format", "stream-json",
+ "--append-system-prompt", "반말로 대답해. 유머러스하게."]
+```
+
 ## 왜 만드는가
 
 - Claude Code의 터미널 UI는 고정되어 있어서 변경할 수 없음
@@ -18,6 +44,12 @@ Claude Code CLI의 터미널 UI를 자유롭게 커스터마이징하는 프로�
 - `claude --print --output-format stream-json --input-format stream-json` (공식 플래그)
 - stdin/stdout 파이프로 통신 → 기존 구독 요금 그대로 사용
 - React Ink로 터미널 UI 렌더링 → UI 자유 커스터마이징
+
+## 기술 스택
+
+- **Bun** - 런타임
+- **React Ink** - 터미널 UI
+- **TypeScript**
 
 ## stream-json 프로토콜
 
@@ -123,36 +155,3 @@ Claude Code CLI의 터미널 UI를 자유롭게 커스터마이징하는 프로�
   }
 }
 ```
-
-## 주의: --dangerously-skip-permissions
-
-이 프로젝트는 `--dangerously-skip-permissions` 플래그로 Claude CLI를 실행한다. 모든 tool(파일 수정, 삭제, 웹 검색 등)이 **확인 없이 자동 실행**된다.
-
-끄려면 `src/claude-process.ts`에서 `--dangerously-skip-permissions`를 제거하면 된다.
-
-## Claude CLI 옵션
-
-`src/claude-process.ts`의 spawn 인자에 추가해서 사용할 수 있다.
-
-| 옵션 | 설명 |
-|------|------|
-| `--system-prompt <prompt>` | 시스템 프롬프트를 통째로 교체 |
-| `--append-system-prompt <prompt>` | 기본 시스템 프롬프트에 추가 (말투/뉘앙스 커스터마이징에 적합) |
-| `--model <model>` | 사용할 모델 지정 (예: `claude-sonnet-4-5-20250929`) |
-| `--verbose` | 상세 출력 |
-| `--include-partial-messages` | 스트리밍 중간 메시지 포함 |
-| `--dangerously-skip-permissions` | 모든 tool 자동 승인 (주의) |
-
-예시: 반말로 유머러스하게 응답하게 하려면
-
-```ts
-["claude", "--print", "--output-format", "stream-json", "--input-format", "stream-json",
- "--append-system-prompt", "반말로 대답해. 유머러스하게."]
-```
-
-## 기술 스택
-
-- **Bun** - 런타임
-- **React Ink** - 터미널 UI
-- **TypeScript**
-

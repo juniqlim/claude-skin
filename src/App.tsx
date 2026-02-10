@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { Box, Text, useInput, useApp, useStdout, useCursor } from "ink";
 import { spawnClaude, type ParsedEvent } from "./claude-process.ts";
 import { cursorColumn, wrappedLineCount } from "./cursor.ts";
+import { parseCliArgs, buildClaudeArgs } from "./cli-args.ts";
 
 type AppState = "idle" | "waiting" | "permission";
 
@@ -24,7 +25,9 @@ export default function App() {
 
   // Spawn Claude process on mount
   useEffect(() => {
-    const proc = spawnClaude();
+    const opts = parseCliArgs(process.argv.slice(2));
+    const claudeArgs = buildClaudeArgs(opts);
+    const proc = spawnClaude(claudeArgs);
     setClaude(proc);
 
     proc.onEvent((event: ParsedEvent) => {
@@ -136,7 +139,7 @@ export default function App() {
   const termWidth = stdout?.columns ?? 80;
 
   // Show last N lines of output that fit
-  const maxOutputLines = (stdout?.rows ?? 24) - 4;
+  const maxOutputLines = (stdout?.rows ?? 24) - 6;
   const visibleOutput = output.slice(-maxOutputLines);
 
   // Position the real terminal cursor for IME composition

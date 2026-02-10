@@ -4,6 +4,8 @@ Claude Code CLI의 터미널 UI를 자유롭게 커스터마이징하는 프로�
 
 ![claude-skin 실행 화면](./screenshot.png)
 
+![claude-skin 유머](./screenshot2.png)
+
 ## 왜 만드는가
 
 - Claude Code의 터미널 UI는 고정되어 있어서 변경할 수 없음

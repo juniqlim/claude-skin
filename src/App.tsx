@@ -37,12 +37,7 @@ export default function App() {
           setState("idle");
           break;
         case "tool_use":
-          setPermission({
-            toolName: event.toolName,
-            toolUseId: event.toolUseId,
-            input: event.input,
-          });
-          setState("permission");
+          setOutput((prev) => [...prev, `[Tool] ${event.toolName}`]);
           break;
         case "result":
           if (event.isError) {

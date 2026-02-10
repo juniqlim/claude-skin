@@ -122,6 +122,12 @@ Claude Code CLI의 터미널 UI를 자유롭게 커스터마이징하는 프로�
 }
 ```
 
+## 주의: --dangerously-skip-permissions
+
+이 프로젝트는 `--dangerously-skip-permissions` 플래그로 Claude CLI를 실행한다. 모든 tool(파일 수정, 삭제, 웹 검색 등)이 **확인 없이 자동 실행**된다.
+
+끄려면 `src/claude-process.ts`에서 `--dangerously-skip-permissions`를 제거하면 된다.
+
 ## 기술 스택
 
 - **Bun** - 런타임

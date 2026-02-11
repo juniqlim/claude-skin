@@ -17,3 +17,16 @@ export function wrappedLineCount(text: string, termWidth: number): number {
   }
   return total;
 }
+
+export function inputLineY(
+  visibleOutput: string[],
+  termWidth: number,
+  isWaiting: boolean
+): number {
+  let y = 0;
+  for (const line of visibleOutput) {
+    y += wrappedLineCount(line, termWidth);
+  }
+  if (isWaiting) y += 1; // "Thinking..." 라인
+  return y;
+}

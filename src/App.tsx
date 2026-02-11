@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { Box, Text, useInput, useApp, useStdout, useCursor } from "ink";
+import { Box, Text, useInput, useApp, useStdout, useCursor, type Key } from "ink";
 import { spawnClaude, type ParsedEvent } from "./claude-process.ts";
-import { cursorColumn, wrappedLineCount } from "./cursor.ts";
+import { cursorColumn, inputLineY } from "./cursor.ts";
 import { parseCliArgs, buildClaudeArgs } from "./cli-args.ts";
 import { listSessions, loadSessionHistory, cwdToProjectDir, type SessionSummary } from "./sessions.ts";
 
@@ -223,8 +223,6 @@ export default function App() {
     );
   }
 
-  const { text: input, cursor: cursorPos } = inputState;
-  const cursorX = cursorColumn(input, cursorPos);
   const termWidth = stdout?.columns ?? 80;
 
   // Show last N lines of output that fit
@@ -232,12 +230,10 @@ export default function App() {
   const visibleOutput = output.slice(-maxOutputLines);
 
   // Position the real terminal cursor for IME composition
-  const inputLineY = visibleOutput.reduce(
-    (sum, line) => sum + wrappedLineCount(line, termWidth),
-    0
-  );
+  const cursorX = cursorColumn(inputState.text, inputState.cursor);
+  const cursorY = inputLineY(visibleOutput, termWidth, state === "waiting");
   if (state === "idle" || state === "waiting") {
-    setCursorPosition({ x: cursorX, y: inputLineY + (state === "waiting" ? 1 : 0) });
+    setCursorPosition({ x: cursorX, y: cursorY });
   } else {
     setCursorPosition(undefined);
   }
@@ -279,7 +275,7 @@ export default function App() {
           <Text color="green" bold>
             {"❯ "}
           </Text>
-          <Text>{input}</Text>
+          <Text>{inputState.text}</Text>
         </Box>
       )}
     </Box>

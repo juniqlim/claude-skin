@@ -6,29 +6,30 @@ Claude Code CLI의 터미널 UI를 자유롭게 커스터마이징하는 프로�
 
 ![claude-skin 유머](./screenshot2.png)
 
-## 주의: --dangerously-skip-permissions
+## 설치 및 실행
 
-이 프로젝트는 `--dangerously-skip-permissions` 플래그로 Claude CLI를 실행한다. 모든 tool(파일 수정, 삭제, 웹 검색 등)이 **확인 없이 자동 실행**된다.
+```sh
+bun install
+bun run src/index.tsx
+```
 
-끄려면 `src/claude-process.ts`에서 `--dangerously-skip-permissions`를 제거하면 된다.
+## CLI 옵션
 
-## Claude CLI 옵션
-
-`src/claude-process.ts`의 spawn 인자에 추가해서 사용할 수 있다.
+claude-skin 실행 시 옵션을 전달할 수 있다. 내부적으로 `claude --print --output-format stream-json --input-format stream-json`에 추가된다.
 
 | 옵션 | 설명 |
 |------|------|
 | `--append-system-prompt <prompt>` | 기본 시스템 프롬프트에 추가 (말투/뉘앙스 커스터마이징에 적합) |
+| `--system-prompt <prompt>` | 시스템 프롬프트 전체 교체 |
 | `--model <model>` | 사용할 모델 지정 (예: `claude-sonnet-4-5-20250929`) |
-| `--verbose` | 상세 출력 |
-| `--include-partial-messages` | 스트리밍 중간 메시지 포함 |
-| `--dangerously-skip-permissions` | 모든 tool 자동 승인 (주의) |
+| `--effort <level>` | 응답 노력 수준 지정 |
+| `--resume`, `-r` | 이전 세션 목록에서 선택하여 대화 복원 |
+| `--dangerously-skip-permissions` | 모든 tool 자동 승인 (주의: 파일 수정/삭제 등이 확인 없이 실행됨) |
 
 예시: 반말로 유머러스하게 응답하게 하려면
 
-```ts
-["claude", "--print", "--output-format", "stream-json", "--input-format", "stream-json",
- "--append-system-prompt", "반말로 대답해. 유머러스하게."]
+```sh
+bun run src/index.tsx --append-system-prompt "반말로 대답해. 유머러스하게."
 ```
 
 ## 왜 만드는가

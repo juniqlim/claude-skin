@@ -60,6 +60,16 @@ describe("buildClaudeArgs", () => {
     expect(args).toContain("--print");
     expect(args).toContain("--output-format");
     expect(args).toContain("--input-format");
+    expect(args).not.toContain("--dangerously-skip-permissions");
+  });
+
+  test("includes --dangerously-skip-permissions when specified", () => {
+    const args = buildClaudeArgs({ dangerouslySkipPermissions: true });
     expect(args).toContain("--dangerously-skip-permissions");
+  });
+
+  test("does not include --dangerously-skip-permissions by default", () => {
+    const args = buildClaudeArgs({});
+    expect(args).not.toContain("--dangerously-skip-permissions");
   });
 });

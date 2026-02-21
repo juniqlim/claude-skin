@@ -4,6 +4,7 @@ export interface CliOptions {
   appendSystemPrompt?: string;
   systemPrompt?: string;
   resume?: boolean;
+  dangerouslySkipPermissions?: boolean;
 }
 
 export function parseCliArgs(args: string[]): CliOptions {
@@ -27,6 +28,9 @@ export function parseCliArgs(args: string[]): CliOptions {
       case "-r":
         opts.resume = true;
         break;
+      case "--dangerously-skip-permissions":
+        opts.dangerouslySkipPermissions = true;
+        break;
     }
   }
 
@@ -40,7 +44,6 @@ export function buildClaudeArgs(opts: CliOptions): string[] {
     "--input-format", "stream-json",
     "--verbose",
     "--include-partial-messages",
-    "--dangerously-skip-permissions",
   ];
 
   if (opts.effort) {
@@ -54,6 +57,9 @@ export function buildClaudeArgs(opts: CliOptions): string[] {
   }
   if (opts.systemPrompt) {
     args.push("--system-prompt", opts.systemPrompt);
+  }
+  if (opts.dangerouslySkipPermissions) {
+    args.push("--dangerously-skip-permissions");
   }
 
   return args;
